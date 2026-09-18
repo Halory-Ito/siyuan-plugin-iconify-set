@@ -1,0 +1,30 @@
+{
+  "searchLimit": {
+    "title": "Search result limit",
+    "description": "Number of icons fetched from Iconify per request, default 60"
+  },
+  "defaultColor": {
+    "title": "Default icon color",
+    "description": "Default color baked into the saved SVG. SiYuan renders custom icons as <img>, so they cannot follow the theme color."
+  },
+  "iconGroup": {
+    "title": "Custom icon group",
+    "description": "Folder name under data/emojis where icons are stored, default iconify-set"
+  },
+  "searchDebounce": {
+    "title": "Search debounce",
+    "description": "Debounce delay for the search input in milliseconds, default 300, minimum 200"
+  },
+  "batchConcurrency": {
+    "title": "Batch concurrency",
+    "description": "Concurrent requests when applying icons in batch / auto matching, default 3"
+  },
+  "autoIconNewDoc": {
+    "title": "Auto icon for newly opened docs",
+    "description": "Automatically search and set an icon by title when opening a document without icon (disabled by default, may cause many network requests)"
+  },
+  "enabledCollections": {
+    "title": "Icon sets in use",
+    "description": "Pick the Iconify icon sets you prefer. Search will only look in these sets. Nothing selected means all icon sets are used."
+  }
+}

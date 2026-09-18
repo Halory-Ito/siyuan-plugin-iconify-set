@@ -1,0 +1,44 @@
+{
+  "name": "iconify-set",
+  "author": "Ciallo",
+  "url": "https://github.com/Ciallo/iconify-set",
+  "version": "0.3.0",
+  "minAppVersion": "3.1.0",
+  "disabledInPublish": true,
+  "kernels": [
+    "all"
+  ],
+  "backends": [
+    "all"
+  ],
+  "frontends": [
+    "all"
+  ],
+  "displayName": {
+    "default": "Iconify Document Icons",
+    "zh_CN": "Iconify 文档图标",
+    "zh-CN": "Iconify 文档图标"
+  },
+  "description": {
+    "default": "Set an icon for every document with more than 200,000 open source icons from Iconify",
+    "zh_CN": "使用 Iconify 超 20 万个开源图标，为思源笔记的每个文档设置图标",
+    "zh-CN": "使用 Iconify 超 20 万个开源图标，为思源笔记的每个文档设置图标"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh_CN": "README_zh_CN.md",
+    "zh-CN": "README_zh_CN.md"
+  },
+  "icon": "icon.png",
+  "preview": "preview.png",
+  "funding": {
+    "custom": [
+      ""
+    ]
+  },
+  "keywords": [
+    "icon",
+    "iconify",
+    "document"
+  ]
+}

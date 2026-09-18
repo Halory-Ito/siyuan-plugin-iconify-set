@@ -1,0 +1,30 @@
+{
+  "searchLimit": {
+    "title": "搜索结果数量",
+    "description": "每次从 Iconify 拉取的图标数量，默认 60"
+  },
+  "defaultColor": {
+    "title": "默认图标颜色",
+    "description": "保存图标时写入 SVG 的默认颜色。思源以 <img> 渲染自定义图标，无法跟随主题变色，因此颜色会被固化到文件中。"
+  },
+  "iconGroup": {
+    "title": "自定义图标分组",
+    "description": "图标保存到 data/emojis/<分组> 目录下的名称，默认 iconify-set"
+  },
+  "searchDebounce": {
+    "title": "搜索防抖",
+    "description": "搜索输入防抖延时（毫秒），默认 300，最小 200"
+  },
+  "batchConcurrency": {
+    "title": "批量并发数",
+    "description": "批量设置 / 自动匹配图标时的并发请求数，默认 3"
+  },
+  "autoIconNewDoc": {
+    "title": "新打开文档自动匹配图标",
+    "description": "打开未设置图标的文档时，按文档标题自动搜索并设置图标（默认关闭，可能产生较多网络请求）"
+  },
+  "enabledCollections": {
+    "title": "使用的图标集",
+    "description": "勾选你偏好的 Iconify 图标集，搜索时只会在这些图标集中查找。一个都不勾选表示使用全部图标集。"
+  }
+}

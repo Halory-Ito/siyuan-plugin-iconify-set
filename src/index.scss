@@ -1,0 +1,94 @@
+.iconify-set__dialog {
+    height: 100%;
+    min-height: 0;
+}
+
+/* 图标集多选框 */
+.iconify-set__collections {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.iconify-set__collections-toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.iconify-set__collections-search {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.iconify-set__collections-summary {
+    font-size: 12px;
+}
+
+.iconify-set__collections-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--b3-border-color);
+    border-radius: var(--b3-border-radius);
+}
+
+.iconify-set__collections-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.iconify-set__collections-item:hover {
+    background: var(--b3-list-hover);
+}
+
+.iconify-set__collections-name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.iconify-set__collections-prefix {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--b3-theme-primary);
+}
+
+.iconify-set__collections-total {
+    flex: 0 0 auto;
+    font-size: 11px;
+    min-width: 40px;
+    text-align: right;
+}
+
+.iconify-set__collections-empty {
+    padding: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--b3-theme-on-surface);
+}
+
+/* 注入原生 emoji 面板的 Iconify 分组 */
+.iconify-set__native {
+    .emojis__content {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+        gap: 2px;
+    }
+
+    .emojis__item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* 让思源弹窗内容区可以撑满高度 */
+.b3-dialog__body:has(.iconify-set__dialog) {
+    overflow: hidden;
+}
