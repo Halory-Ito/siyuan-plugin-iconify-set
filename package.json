@@ -1,6 +1,6 @@
 {
   "name": "iconify-set",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "使用 Iconify 图标集为思源笔记的每个文档设置图标",
   "repository": "https://github.com/Halory-Ito/siyuan-plugin-iconify-set",

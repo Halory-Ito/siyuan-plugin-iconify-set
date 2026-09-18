@@ -2,7 +2,7 @@
   "name": "iconify-set",
   "author": "Halory",
   "url": "https://github.com/Halory-Ito/siyuan-plugin-iconify-set",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "minAppVersion": "3.1.0",
   "disabledInPublish": true,
   "kernels": [

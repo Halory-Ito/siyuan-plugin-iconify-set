@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - **新增：根目录 `LICENSE`（MIT）**。项目此前在 `package.json` / README 中声明 MIT 但缺少许可证文件，现补齐并随构建复制到 `dist/` 与 `package.zip`。
 - **新增：设置面板底部的「重置设置」按钮**。点击后弹出思源原生警告确认框（`confirm`），确认后把所有设置恢复为默认值（含默认图标集），并立即刷新设置界面与持久化到 `settings.json`。
