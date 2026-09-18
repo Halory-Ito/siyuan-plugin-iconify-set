@@ -107,4 +107,4 @@ Symlink `dev/` into the SiYuan workspace at `data/plugins/iconify-set` for debug
 
 ## License
 
-MIT
+[MIT](./LICENSE)

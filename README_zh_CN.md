@@ -107,4 +107,4 @@ npm run build    # 构建到 dist/ 并打包 package.zip
 
 ## License
 
-MIT
+[MIT](./LICENSE)

@@ -42,6 +42,7 @@ node scripts/gen_assets.mjs  # 重新生成 icon.png / preview.png
 ```
 .
 ├─ plugin.json                 # 思源插件清单（name 必须与目录名一致！）
+├─ LICENSE                     # MIT 许可证（构建时复制进 dist / package.zip）
 ├─ package.json
 ├─ vite.config.ts              # 构建配置 + 清单名校验插件
 ├─ svelte.config.js
