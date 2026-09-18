@@ -3,9 +3,9 @@
   "version": "0.3.0",
   "type": "module",
   "description": "使用 Iconify 图标集为思源笔记的每个文档设置图标",
-  "repository": "https://github.com/Ciallo/iconify-set",
-  "homepage": "https://github.com/Ciallo/iconify-set",
-  "author": "Ciallo",
+  "repository": "https://github.com/Halory-Ito/siyuan-plugin-iconify-set",
+  "homepage": "https://github.com/Halory-Ito/siyuan-plugin-iconify-set",
+  "author": "Halory",
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development VITE_SOURCEMAP=inline vite build --watch",
@@ -13,6 +13,10 @@
     "make-link": "node --no-warnings ./scripts/make_dev_link.js",
     "make-link-win": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/elevate.ps1 -scriptPath ./scripts/make_dev_link.js",
     "update-version": "node --no-warnings ./scripts/update_version.js",
+    "set-version": "node --no-warnings ./scripts/set_version.js",
+    "check": "node ./scripts/check_package.mjs",
+    "check:zip": "node ./scripts/check_package.mjs --zip package.zip",
+    "check:strict": "node ./scripts/check_package.mjs --strict-url",
     "make-install": "vite build && node --no-warnings ./scripts/make_install.js"
   },
   "devDependencies": {

@@ -1,33 +1,200 @@
-name: Create Release on Tag Push
+name: Release
+
+# 两种触发方式：
+#   1. push tag v*            —— 手动 tag 后发布（tag 必须等于 plugin.json 的 version）
+#   2. workflow_dispatch      —— 由 Actions 面板一键改版本号、提交、打 tag、构建并发布
+#
+# 产物：GitHub Release + package.zip（文件名必须叫 package.zip，思源社区集市只认这个名字）。
+# 首次收录需要向 https://github.com/siyuan-note/bazaar 提一个 PR，
+# 把 owner/repo 加进 plugins.txt；之后集市会自动拉取本仓库的 Latest Release，无需再提 PR。
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "自动升级版本号的方式（version 非空时忽略）"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - none
+        default: patch
+      version:
+        description: "指定版本号（如 0.4.0），留空则用上面的方式自动升级"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+# 只对 tag 发布做串行（避免同一 tag 反复发布），手动触发允许并行排队
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# 说明：思源要求安装目录名 == plugin.json 的 name，而 vite.config.ts 会在构建时校验
+# 「当前目录名 == name」，因此下面所有 job 都显式把仓库签出到 iconify-set/ 目录，
+# 并用 defaults.run.working-directory 把工作目录统一到该目录。
 
 jobs:
-  build:
+  bump:
+    name: Bump version
+    if: github.event_name == 'workflow_dispatch' && (inputs.version != '' || inputs.bump != 'none')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.set.outputs.version }}
+
+    defaults:
+      run:
+        working-directory: iconify-set
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: iconify-set
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: iconify-set/package-lock.json
+
+      - name: Bump plugin.json & package.json
+        id: set
+        env:
+          BUMP: ${{ inputs.bump }}
+          WANT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$WANT" ]; then
+            NEXT="$(node scripts/set_version.js "$WANT")"
+          else
+            NEXT="$(node scripts/set_version.js "$BUMP")"
+          fi
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "新版本号：$NEXT"
+
+      - name: Commit & push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugin.json package.json package-lock.json
+          git commit -m "chore(release): v${{ steps.set.outputs.version }}"
+          git push origin "HEAD:$BRANCH"
+
+  release:
+    name: Build & publish
+    needs: bump
+    if: always() && !cancelled() && !failure()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    defaults:
+      run:
+        working-directory: iconify-set
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: iconify-set
+          fetch-depth: 0
+          # 必须显式写 ref：workflow_dispatch 时 github.sha 指向「触发瞬间」的提交，
+          # 而 bump job 刚推了新提交，用 gh.sha 会构建到旧版本。
+          # tag 触发时 github.ref_name 是 tag，手动触发时是分支名（即分支最新提交）。
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: iconify-set/package-lock.json
+
+      # 解析本次要发布的 tag / 版本号，并校验 tag 与清单一致
+      - name: Resolve version
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref_name }}
+          BUMPED: ${{ needs.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "push" ]; then
+            TAG="$REF"
+            VERSION="${TAG#v}"
+          else
+            VERSION="${BUMPED:-$(node scripts/set_version.js --print)}"
+            TAG="v$VERSION"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "本次发布 $TAG"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --no-audit --no-fund
 
-      - name: Build for production
+      - name: Lint manifest (bazaar rules)
+        run: |
+          node scripts/check_package.mjs \
+            --repo "${{ github.repository }}" \
+            --strict-url \
+            --expect-version "${{ steps.version.outputs.version }}"
+
+      - name: Build
         run: npm run build
 
-      - name: Release
+      - name: Verify package.zip
+        run: |
+          node scripts/check_package.mjs \
+            --repo "${{ github.repository }}" \
+            --strict-url \
+            --zip package.zip \
+            --expect-version "${{ steps.version.outputs.version }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ steps.version.outputs.version }}
+          path: iconify-set/package.zip
+          if-no-files-found: error
+
+      - name: Create / update GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          allowUpdates: true
-          artifactErrorsFailBuild: true
-          artifacts: "package.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          commit: ${{ steps.version.outputs.sha }}
+          artifacts: iconify-set/package.zip
+          artifactErrorsFailBuild: true
+          generateReleaseNotes: true
+          allowUpdates: true
+          omitBodyDuringUpdate: true
           prerelease: false
+          makeLatest: true
+
+      - name: Summary
+        run: |
+          {
+            echo "### 发布完成：${{ steps.version.outputs.tag }}"
+            echo ""
+            echo "- 产物：\`package.zip\`（集市只识别这个名字）"
+            echo "- 集市会自动拉取 Latest Release；首次收录需要向 siyuan-note/bazaar 提 PR 把 \`${{ github.repository }}\` 加进 \`plugins.txt\`"
+          } >> "$GITHUB_STEP_SUMMARY"

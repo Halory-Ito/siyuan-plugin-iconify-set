@@ -22,13 +22,18 @@
 - 图标搜索 / 下载：Iconify REST API（`fetch`）
 
 ```bash
-npm install
+npm ci                 # 依赖已锁定（package-lock.json 已入库），CI 用这个
+npm install            # 只在需要更新依赖时用
 npm run dev            # watch 构建到 dev/（inline sourcemap）
 npm run build          # 构建到 dist/ 并生成 package.zip
 npm run make-link      # 把 dev/ 软链到 <工作空间>/data/plugins/iconify-set
 npm run make-link-win  # 需要管理员权限时用这个
 npm run make-install   # 构建并把 dist/ 复制到 <工作空间>/data/plugins/iconify-set
 npm run update-version # 交互式改 plugin.json / package.json 版本号
+npm run set-version -- patch  # 非交互式改版本号（CI 用，见 12.2）
+npm run check          # 按思源集市规则校验 plugin.json（见 12.3）
+npm run check:zip      # 额外校验 package.zip
+npm run check:strict   # 同上，但 url 与仓库地址不一致时直接报错
 node scripts/gen_assets.mjs  # 重新生成 icon.png / preview.png
 ```
 
@@ -59,6 +64,8 @@ node scripts/gen_assets.mjs  # 重新生成 icon.png / preview.png
 │  ├─ index.scss               # 全局样式（设置面板、选择器、注入分组）
 │  └─ global.d.ts
 ├─ scripts/                    # 开发/发布辅助脚本（来自 frostime 模板）
+│  ├─ set_version.js           # 非交互式改版本号（CI 用）
+│  └─ check_package.mjs        # 思源集市规则自检（清单 + zip）
 ├─ README.md / README_zh_CN.md
 └─ CHANGELOG.md
 ```
@@ -103,9 +110,12 @@ func IsValidInstalledPackage(pkg *Package, dirName string) bool {
 
 - 本仓库目录名 = `iconify-set`，`plugin.json.name` = `iconify-set`；
 - 安装目录必须是 `data/plugins/iconify-set/`；
-- 发布到集市时 GitHub 仓库名也要与之对应；
 - **`vite.config.ts` 里的 `checkManifestName()` 会在构建时校验目录名与 `name`，不一致直接 build 报错。**
-  如果你要改插件名，记得同时改目录名 / 仓库名，否则构建会失败（这是刻意的）。
+  如果你要改插件名，记得同时改目录名，否则构建会失败（这是刻意的）；
+- 注意：**GitHub 仓库名只有安装目录名必须与 `name` 一致**，
+  集市只要求 `plugin.json.url` 等于仓库地址、`name` 全局唯一（见 12.3），
+  所以本仓库叫 `siyuan-plugin-iconify-set`、插件叫 `iconify-set` 是合法的。
+  但 CI 会把仓库签出到 `iconify-set/` 目录（见 12.1），不能直接改成仓库名。
 
 ### 4.4 思源原生 emoji 面板 DOM（`nativePanel.ts` 依赖）
 
@@ -268,3 +278,75 @@ func IsValidInstalledPackage(pkg *Package, dirName string) bool {
 - 设置项文案放 `public/i18n/`，界面文案放 `src/i18n.ts`；
 - 不要用 `\` + 空格之类的技巧；不要引入重型依赖（当前运行时依赖只有 `iconify-icon`）；
 - 代码注释用中文，标识符用英文。
+
+## 12. 发布与分发（GitHub Actions）
+
+### 12.1 工作流一览
+
+| 文件 | 触发 | 作用 |
+| --- | --- | --- |
+| `.github/workflows/ci.yml` | push main / PR / 手动 | `npm ci` → 清单校验 → `npm run build` → 校验 `package.zip` → 上传 artifact |
+| `.github/workflows/release.yml` | push tag `v*` / 手动 | 可选自动改版本号并提交 → 构建 → 严格校验 → 建 GitHub Release 并上传 `package.zip` |
+
+两个工作流都会把仓库签出到 `iconify-set/` 目录（`actions/checkout` 的 `path` 参数），
+再用 `defaults.run.working-directory` 统一工作目录。
+**原因**：`vite.config.ts#checkManifestName()` 要求「当前目录名 == `plugin.json` 的 `name`」，
+而 GitHub 默认把仓库签出成「仓库名」目录。仓库名改了也不用动 workflow，只要同步改这里的 `path`。
+
+### 12.2 一键发版
+
+Actions 面板 → Release → Run workflow，选 `patch` / `minor` / `major`（或填一个具体的 `x.y.z`）：
+
+1. `scripts/set_version.js` 同步更新 `plugin.json` / `package.json` / `package-lock.json`；
+2. bot 以 `chore(release): vX.Y.Z` 提交并推送（不推 tag，避免重复触发）；
+3. 构建、校验 `package.zip`；
+4. 建 Release 并创建 tag `vX.Y.Z`（tag 由 Release API 创建，不会再触发一次 `push`）。
+
+已有 tag 想重新发布时，直接 `git tag v0.4.0 && git push origin v0.4.0`，
+`release.yml` 会校验「tag 去掉 v」与清单里的 `version` 是否一致，不一致直接失败。
+
+本地等价的版本号操作（`update-version` 是交互式的，CI 用这个）：
+
+```bash
+node scripts/set_version.js patch        # 0.3.0 -> 0.3.1
+node scripts/set_version.js 0.4.0        # 指定版本，必须大于当前版本
+node scripts/set_version.js --print      # 只打印当前版本（脚本把新版本号写 stdout）
+```
+
+### 12.3 集市校验脚本
+
+`scripts/check_package.mjs` 按思源社区集市（[siyuan-note/bazaar](https://github.com/siyuan-note/bazaar)）
+`rules/` 包的规则做离线自检，CI 和本地共用：
+
+```bash
+npm run check                            # 只查 plugin.json 等元数据（url 不一致仅警告）
+npm run check:zip                        # 额外解析 package.zip（纯 JS 实现，无第三方依赖）
+npm run check:strict                     # url 与仓库地址不一致时报错
+node scripts/check_package.mjs --repo owner/repo --expect-version 0.4.0 \
+  --strict-url --zip package.zip
+```
+
+检查项（都会给出集市原文要求的修法）：
+
+- `package.zip` 根目录必须有 `README.md` / `plugin.json` / `index.js`（大小写敏感），文件名必须叫 `package.zip`；
+- `plugin.json` 只能出现集市白名单里的字段，多一个都会被拒；`name` / `author` / `url` / `version` 必填；
+- `version` 必须是不带 `v` 前缀的 semver，且**严格递增**（更新已收录插件时）；
+- `url` 必须等于 GitHub 仓库地址；
+- zip 内路径必须是 `/` 分隔、不能有首尾空格、不能是 Windows 保留设备名；
+- `readme` / `icon` / `preview` 指向的文件必须真实存在；
+- `package.zip` 内 `plugin.json` 的 `name` / `author` / `url` / `version` 必须与源码一致
+  （防止 `outDir` 不清理时把旧清单一起打进包里）。
+
+> 两个 workflow 都带 `--strict-url`，所以一旦 `url` 与仓库地址不一致就会直接失败；
+> 本地 `npm run check` 只警告，方便在 fork / 改名前先构建。
+> 仓库地址默认取 `GITHUB_REPOSITORY`，本地取 `git remote get-url origin`。
+
+### 12.4 首次收录集市（只需做一次）
+
+1. 确认本仓库已 public，且已有至少一个 Release（里面带 `package.zip`）——直接跑一次 12.2 即可；
+2. fork [siyuan-note/bazaar](https://github.com/siyuan-note/bazaar)，在仓库根目录的 `plugins.txt`
+   追加一行 `owner/repo`（一行只能加 1 个包，不要混入其它改动），向 `main` 提 PR；
+3. 等 PR Check 通过并合并，集市索引会自动更新，思源集市里就能搜到本插件。
+
+之后**每次发版都不用再提 PR**：集市的定期任务会自动拉取本仓库的 Latest Release 并更新索引，
+所以 release 必须是「Latest Release」（不要勾 prerelease），且版本号必须递增。

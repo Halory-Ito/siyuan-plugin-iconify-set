@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & bazaar check
+    runs-on: ubuntu-latest
+
+    # 思源要求安装目录名 == plugin.json 的 name，vite.config.ts 会在构建时校验
+    # 「当前目录名 == name」，所以这里显式把仓库签出到 iconify-set/ 目录。
+    defaults:
+      run:
+        working-directory: iconify-set
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: iconify-set
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: iconify-set/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint manifest (bazaar rules)
+        run: npm run check:strict
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify package.zip
+        run: npm run check:strict -- --zip package.zip
+
+      - name: Upload package.zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: iconify-set/package.zip
+          if-no-files-found: error
+          retention-days: 7
