@@ -30,9 +30,27 @@ export interface PluginSettings {
     batchConcurrency: number;
     /** 新打开文档自动匹配图标 */
     autoIconNewDoc: boolean;
-    /** 只在这些图标集（Iconify collection prefix）中搜索；空数组表示全部 */
+    /** 只在这些图标集（Iconify collection prefix）中搜索；空数组表示全部。默认见 `DEFAULT_COLLECTIONS` */
     enabledCollections: string[];
 }
+
+/**
+ * 默认启用的 Iconify 图标集。
+ *
+ * 宗旨：开箱即用、面向普通用户。Iconify 有 20 万+ 图标，但大多数集合是单色的，
+ * 而思源以 <img> 渲染图标、颜色会被固化，彩色集合效果最好。这里挑选几个
+ * “常用 + 彩色 + 覆盖面广”的集合，用户可在设置面板随意增减；
+ * 全部取消勾选表示使用全部图标集。
+ */
+export const DEFAULT_COLLECTIONS: string[] = [
+    "flat-color-icons",  // 通用彩色图标（经典、辨识度高）
+    "icon-park",         // 通用彩色图标（数量大、风格现代）
+    "twemoji",           // 彩色 emoji（Twitter，传播度最高）
+    "fluent-emoji-flat", // 彩色 emoji（微软 Fluent，风格简洁）
+    "logos",             // 彩色品牌 / 产品 logo
+    "skill-icons",       // 彩色技术栈图标
+    "vscode-icons",      // 彩色文件 / 文件夹图标
+];
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     searchLimit: 60,
@@ -41,7 +59,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     searchDebounce: 300,
     batchConcurrency: 3,
     autoIconNewDoc: false,
-    enabledCollections: [],
+    enabledCollections: [...DEFAULT_COLLECTIONS],
 };
 
 /** 图标集的元信息 */

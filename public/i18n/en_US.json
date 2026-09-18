@@ -25,6 +25,10 @@
   },
   "enabledCollections": {
     "title": "Icon sets in use",
-    "description": "Pick the Iconify icon sets you prefer. Search will only look in these sets. Nothing selected means all icon sets are used."
+    "description": "Pick the Iconify icon sets you prefer. Search will only look in these sets. A few common colorful sets are selected by default. Nothing selected means all icon sets are used."
+  },
+  "resetSettings": {
+    "title": "Reset settings",
+    "description": "Restore all options to their default values. A confirmation dialog will be shown first"
   }
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **新增：设置面板底部的「重置设置」按钮**。点击后弹出思源原生警告确认框（`confirm`），确认后把所有设置恢复为默认值（含默认图标集），并立即刷新设置界面与持久化到 `settings.json`。
+- **新增：默认启用几个常用彩色图标集**。新安装用户会默认勾选 `flat-color-icons`、`icon-park`、`twemoji`、`fluent-emoji-flat`、`logos`、`skill-icons`、`vscode-icons` 这 7 个集合（见 `types.ts` 的 `DEFAULT_COLLECTIONS`），开箱即有好看且覆盖广的搜索结果；全部取消勾选仍表示使用全部图标集。已保存过设置的用户不被强制修改。
+- **移除：顶部工具栏按钮**（`addTopBar`）。不再在顶栏提供「为当前文档设置图标」入口，请改用文档树 / 文档标题图标右键菜单，或点击文档树图标打开的原生面板。相关的 `openPickerForCurrentDoc`、`lastProtyle` 跟踪（含 `destroy-protyle` 钩子）与 `topbarTitle` 文案一并清理。
+
 ## 0.3.0
 
 - **新增：图标集偏好设置**。在设置面板中用复选框选择只使用哪些 Iconify 图标集；未勾选表示全部。原生面板、独立选择器、按标题自动匹配、新文档自动匹配都会在选定范围内搜索。

@@ -7,10 +7,13 @@ export interface IText {
     menuRemoveIcon: string;
     menuBatchNotebook: string;
     menuAutoNotebook: string;
-    topbarTitle: string;
     noActiveDoc: string;
     setIconDone: string;
     removeIconDone: string;
+    resetSettings: string;
+    resetSettingsConfirmTitle: string;
+    resetSettingsConfirmText: string;
+    resetSettingsDone: string;
 
     pickerSearchPlaceholder: string;
     pickerAllCollections: string;
@@ -52,10 +55,13 @@ const zh_CN: IText = {
     menuRemoveIcon: "移除 Iconify 图标",
     menuBatchNotebook: "批量设置文档图标",
     menuAutoNotebook: "按标题自动匹配图标",
-    topbarTitle: "Iconify 文档图标",
     noActiveDoc: "没有找到当前文档",
     setIconDone: "图标设置完成",
     removeIconDone: "图标已移除",
+    resetSettings: "重置设置",
+    resetSettingsConfirmTitle: "重置设置",
+    resetSettingsConfirmText: "确定要把所有设置恢复为默认值吗？此操作不可撤销。",
+    resetSettingsDone: "设置已重置",
 
     pickerSearchPlaceholder: "搜索图标，例如 home、arrow、github…",
     pickerAllCollections: "全部图标集",
@@ -97,10 +103,13 @@ const en_US: IText = {
     menuRemoveIcon: "Remove Iconify icon",
     menuBatchNotebook: "Batch set document icons",
     menuAutoNotebook: "Auto match icons by title",
-    topbarTitle: "Iconify document icons",
     noActiveDoc: "No active document found",
     setIconDone: "Icon applied",
     removeIconDone: "Icon removed",
+    resetSettings: "Reset settings",
+    resetSettingsConfirmTitle: "Reset settings",
+    resetSettingsConfirmText: "Are you sure you want to restore all options to their default values? This cannot be undone.",
+    resetSettingsDone: "Settings reset",
 
     pickerSearchPlaceholder: "Search icons, e.g. home, arrow, github…",
     pickerAllCollections: "All icon sets",

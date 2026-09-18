@@ -1,4 +1,4 @@
-import { Dialog, Plugin, Setting, type IProtyle } from "siyuan";
+import { confirm, Dialog, Plugin, Setting, type IProtyle } from "siyuan";
 import { getBlockAttrs, pushErrMsg, pushMsg } from "@/api";
 import { getText, type IText } from "@/i18n";
 import IconPicker from "@/components/IconPicker.svelte";
@@ -26,10 +26,11 @@ export default class IconifySetPlugin extends Plugin {
     private text: IText;
     private pickerDialog: Dialog | null = null;
     private pickerComponent: any = null;
-    private lastProtyle: IProtyle | null = null;
     private autoTried = new Set<string>();
     private nativePanel: NativeEmojiPanel | null = null;
     private unloaders: (() => void)[] = [];
+    /** 设置面板各行的「刷新」函数（按设置项 key），重置设置后用来把界面同步回默认值 */
+    private settingRefreshers = new Map<string, () => void>();
 
     async onload() {
         this.text = getText(window.siyuan?.config?.lang || "zh_CN");
@@ -37,12 +38,6 @@ export default class IconifySetPlugin extends Plugin {
         await this.loadRecent();
         this.initSettingPanel();
         this.nativePanel = new NativeEmojiPanel(this.settings);
-        this.addTopBar({
-            icon: "iconImage",
-            title: this.text.topbarTitle,
-            position: "right",
-            callback: () => this.openPickerForCurrentDoc(),
-        });
     }
 
     onLayoutReady() {
@@ -62,14 +57,6 @@ export default class IconifySetPlugin extends Plugin {
         const loadedListener = (event: any) => this.onProtyleLoaded(event);
         bus.on("loaded-protyle-static", loadedListener);
         this.unloaders.push(() => bus.off("loaded-protyle-static", loadedListener));
-
-        const destroyListener = (event: any) => {
-            if (this.lastProtyle === event?.detail?.protyle) {
-                this.lastProtyle = null;
-            }
-        };
-        bus.on("destroy-protyle", destroyListener);
-        this.unloaders.push(() => bus.off("destroy-protyle", destroyListener));
     }
 
     async onunload() {
@@ -95,7 +82,10 @@ export default class IconifySetPlugin extends Plugin {
         this.settings.batchConcurrency = clampNumber(this.settings.batchConcurrency, 1, 10, DEFAULT_SETTINGS.batchConcurrency);
         if (!this.settings.defaultColor) this.settings.defaultColor = DEFAULT_SETTINGS.defaultColor;
         if (!this.settings.iconGroup) this.settings.iconGroup = DEFAULT_SETTINGS.iconGroup;
-        if (!Array.isArray(this.settings.enabledCollections)) this.settings.enabledCollections = [];
+        // 复制一份，避免直接引用 DEFAULT_SETTINGS 里的数组
+        this.settings.enabledCollections = Array.isArray(this.settings.enabledCollections)
+            ? [...this.settings.enabledCollections]
+            : [...DEFAULT_SETTINGS.enabledCollections];
     }
 
     private async saveSettings() {
@@ -118,6 +108,7 @@ export default class IconifySetPlugin extends Plugin {
         const setting = new Setting({
             confirmCallback: () => this.saveSettings(),
         });
+        this.settingRefreshers.clear();
 
         setting.addItem({
             title: tr("searchLimit").title || "Search result limit",
@@ -155,6 +146,11 @@ export default class IconifySetPlugin extends Plugin {
                 || "Choose the Iconify icon sets you want to use. Nothing selected means all icon sets.",
             direction: "row",
             createActionElement: () => this.collectionsPicker(),
+        });
+        setting.addItem({
+            title: tr("resetSettings").title || "Reset settings",
+            description: tr("resetSettings").description || "Restore all options to their default values",
+            createActionElement: () => this.resetSettingsButton(),
         });
 
         (this as any).setting = setting;
@@ -275,6 +271,13 @@ export default class IconifySetPlugin extends Plugin {
         search.addEventListener("input", () => render(search.value));
         render("");
 
+        // 重置设置后重新同步勾选状态
+        this.settingRefreshers.set("enabledCollections", () => {
+            selected.clear();
+            (this.settings.enabledCollections || []).forEach((prefix) => selected.add(prefix));
+            render(search.value);
+        });
+
         fetchCollections()
             .then((items) => {
                 collections = items;
@@ -299,6 +302,9 @@ export default class IconifySetPlugin extends Plugin {
             (this.settings[key] as number) = clampNumber(Number(input.value), min, max, DEFAULT_SETTINGS[key] as number);
             input.value = String(this.settings[key]);
         });
+        this.settingRefreshers.set(String(key), () => {
+            input.value = String(this.settings[key]);
+        });
         return input;
     }
 
@@ -312,6 +318,9 @@ export default class IconifySetPlugin extends Plugin {
             (this.settings[key] as string) = input.value.trim() || placeholder;
             input.value = this.settings[key] as string;
         });
+        this.settingRefreshers.set(String(key), () => {
+            input.value = String(this.settings[key] ?? "");
+        });
         return input;
     }
 
@@ -322,6 +331,9 @@ export default class IconifySetPlugin extends Plugin {
         input.value = String(this.settings[key] || DEFAULT_SETTINGS.defaultColor);
         input.addEventListener("change", () => {
             (this.settings[key] as string) = input.value;
+        });
+        this.settingRefreshers.set(String(key), () => {
+            input.value = String(this.settings[key] || DEFAULT_SETTINGS.defaultColor);
         });
         return input;
     }
@@ -334,7 +346,41 @@ export default class IconifySetPlugin extends Plugin {
         input.addEventListener("change", () => {
             (this.settings[key] as boolean) = input.checked;
         });
+        this.settingRefreshers.set(String(key), () => {
+            input.checked = !!this.settings[key];
+        });
         return input;
+    }
+
+    /** 设置面板底部的「重置」按钮：点击后弹出警告确认框 */
+    private resetSettingsButton(): HTMLElement {
+        const button = document.createElement("button");
+        button.className = "b3-button b3-button--outline";
+        button.type = "button";
+        button.textContent = this.text.resetSettings;
+        button.addEventListener("click", () => {
+            confirm(
+                this.text.resetSettingsConfirmTitle,
+                this.text.resetSettingsConfirmText,
+                () => {
+                    this.resetSettings().catch((err) => console.warn("[iconify-set] reset settings failed", err));
+                },
+            );
+        });
+        return button;
+    }
+
+    /**
+     * 把全部设置恢复为默认值。
+     * 用 Object.assign 原地修改，保证 NativeEmojiPanel 等持有 this.settings 引用的地方同步生效。
+     */
+    private async resetSettings() {
+        Object.assign(this.settings, DEFAULT_SETTINGS, {
+            enabledCollections: [...DEFAULT_SETTINGS.enabledCollections],
+        });
+        await this.saveSettings();
+        this.settingRefreshers.forEach((fn) => fn());
+        pushMsg(this.text.resetSettingsDone);
     }
 
     /* ------------------------------------------------------------------ */
@@ -344,7 +390,6 @@ export default class IconifySetPlugin extends Plugin {
     private onProtyleLoaded(event: any) {
         const protyle: IProtyle = event?.detail?.protyle;
         if (!protyle) return;
-        this.lastProtyle = protyle;
         if (this.settings.autoIconNewDoc) {
             this.maybeAutoIcon(protyle).catch((err) => console.warn("[iconify-set] auto icon failed", err));
         }
@@ -484,17 +529,6 @@ export default class IconifySetPlugin extends Plugin {
     /* ------------------------------------------------------------------ */
     /*                              打开选择器                             */
     /* ------------------------------------------------------------------ */
-
-    private openPickerForCurrentDoc() {
-        const protyle = this.lastProtyle;
-        const id = protyle?.block?.rootID;
-        if (!id) {
-            pushErrMsg(this.text.noActiveDoc);
-            return;
-        }
-        const title = (protyle as any)?.title?.editElement?.textContent || "";
-        this.openPicker([{ id, title, notebookId: protyle?.notebookId }]);
-    }
 
     private openPicker(targets: IconTarget[]) {
         const filtered = (targets || []).filter((item) => item && item.id);

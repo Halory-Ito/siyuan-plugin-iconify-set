@@ -9,7 +9,6 @@ Set a beautiful icon for **every document** in SiYuan. Icons come from the 200,0
 - **Native icon panel injection (core)**: click the icon in front of a file / notebook in the document tree; SiYuan opens its native icon panel, and while searching, Iconify results are shown below. Clicking an Iconify icon switches it immediately, just like a native emoji. The document title icon and notebook icons work the same way.
 - **Document tree context menu**: set / remove an Iconify icon for a document, or apply to "this document and its sub-documents".
 - **Document title icon menu**: click the icon at the left of a document title and choose "Set Iconify icon".
-- **Top bar button**: quickly set an icon for the current document.
 - **Notebook context menu**: batch set icons for all documents in a notebook.
 - **Standalone icon picker**:
   - keyword search (Iconify search API);
@@ -17,7 +16,7 @@ Set a beautiful icon for **every document** in SiYuan. Icons come from the 200,0
   - color selection (presets + color picker + keep original colors);
   - recently used icons;
   - load more / pagination.
-- **Icon set preference**: pick the Iconify icon sets you want to use with checkboxes in settings (search / select all / clear / invert supported). Nothing checked means all. The native panel, standalone picker and auto match all search within the selected sets.
+- **Icon set preference**: pick the Iconify icon sets you want to use with checkboxes in settings (search / select all / clear / invert supported). A few common colorful sets are enabled by default; nothing checked means all. The native panel, standalone picker and auto match all search within the selected sets.
 - **Auto match by title**: search and apply icons automatically for the selected documents based on their titles (optionally only for documents without an icon).
 - **Auto icon for newly opened docs** (optional, disabled by default).
 
@@ -86,7 +85,9 @@ Open "Settings → Bazaar → Downloaded → Iconify Document Icons":
 | Search debounce | Search input debounce (ms) | 300 |
 | Batch concurrency | Concurrent requests for batch / auto match | 3 |
 | Auto icon for newly opened docs | Auto set icon by title when opening a doc without icon | Off |
-| Icon sets in use | Only search in the checked Iconify icon sets; nothing checked means all | All (unchecked) |
+| Icon sets in use | Only search in the checked Iconify icon sets; nothing checked means all | 7 curated colorful sets |
+
+A **Reset settings** button at the bottom of the settings page restores every option to its default value. A confirmation dialog is shown first.
 
 ## Development
 

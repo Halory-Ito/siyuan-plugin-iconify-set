@@ -10,7 +10,7 @@
 
 - 点击文档树里**文件 / 笔记本前面的图标**，思源弹出原生图标面板，面板中搜索即可显示 Iconify 结果，点一下就切换；
 - 文档标题图标、笔记本图标同理；
-- 另外提供右键菜单、顶部工具栏按钮、独立选择器（支持颜色、最近使用、按图标集浏览）、批量设置、按标题自动匹配。
+- 另外提供右键菜单、独立选择器（支持颜色、最近使用、按图标集浏览）、批量设置、按标题自动匹配。
 
 ## 2. 技术栈与命令
 
@@ -150,7 +150,7 @@ func IsValidInstalledPackage(pkg *Package, dirName string) bool {
 
 ### 4.6 图标集偏好
 
-- 设置项 `enabledCollections: string[]`（Iconify collection prefix），空数组 = 全部；
+- 设置项 `enabledCollections: string[]`（Iconify collection prefix），默认值为 `types.ts` 的 `DEFAULT_COLLECTIONS`（几个常用彩色集合），空数组 = 全部；
 - 所有搜索入口统一走 `iconify.ts#searchIconsInSets()`；
 - Iconify search API **只支持单个 `prefix`**（重复 `prefix` 参数会返回空），所以：
   - 选中 ≤ `MAX_SET_FANOUT`(8) 个：逐集合并发搜索后**交错合并**去重，分页在本地进行；
@@ -169,7 +169,7 @@ func IsValidInstalledPackage(pkg *Package, dirName string) bool {
                     │  → 派发 click 交给原生逻辑   │
                     └──────────────┬──────────────┘
                                    │ 原生写 icon 属性
-右键菜单 / 顶部按钮 / 批量          │
+右键菜单 / 批量                    │
         │                          ▼
         ▼                  ┌───────────────┐
    IconPicker.svelte ────► │ service.ts    │─► emoji.ts ─► Iconify API + putFile
@@ -199,8 +199,7 @@ func IsValidInstalledPackage(pkg *Package, dirName string) bool {
 | --- | --- |
 | `eventBus: open-menu-doctree` | 文档树右键菜单，`detail.type` 为 `doc`/`notebook`/`items`，`detail.menu.addItem(...)` |
 | `eventBus: click-editortitleicon` | 标题图标菜单 |
-| `eventBus: loaded-protyle-static` | 记录当前 protyle，用于顶部按钮与「新文档自动图标」 |
-| `eventBus: destroy-protyle` | 清理 `lastProtyle` |
+| `eventBus: loaded-protyle-static` | 监听 protyle 加载，用于「新文档自动图标」 |
 | `MutationObserver(document.body)` | 监听原生 emoji 弹窗出现（`subtree: false`，避免监听编辑器 DOM） |
 | `/api/attr/setBlockAttrs` | 写文档 `icon` |
 | `/api/notebook/setNotebookIcon` | 写笔记本图标（由原生面板逻辑发起，我们只放行） |
@@ -218,13 +217,14 @@ func IsValidInstalledPackage(pkg *Package, dirName string) bool {
 | `searchDebounce` | number | 300 | 搜索防抖（≥200） |
 | `batchConcurrency` | number | 3 | 批量/自动匹配并发 |
 | `autoIconNewDoc` | boolean | false | 打开无图标文档时按标题自动匹配 |
-| `enabledCollections` | string[] | `[]` | 只在这些图标集中搜索；空 = 全部 |
+| `enabledCollections` | string[] | `DEFAULT_COLLECTIONS` | 只在这些图标集中搜索（默认 7 个常用彩色集合）；空 = 全部 |
 
 设置面板用思源原生 `Setting` API：
 
 - 输入类用 `createActionElement` 返回 `<input>`；
 - 图标集复选列表用 `direction: "row"`（这样才会占满整行；`"column"` 会被限制成 `fn__size200`）；
 - `confirmCallback` 里调用 `saveSettings()` 持久化。
+- 底部「重置设置」按钮调用思源原生 `confirm(title, text, cb)` 弹出警告确认框，确认后用 `Object.assign(this.settings, DEFAULT_SETTINGS, …)` **原地**恢复默认（保持对象引用，否则 `NativeEmojiPanel` 会持有旧对象），再依次执行 `settingRefreshers` 把各输入控件刷新回默认值。
 
 持久化：`loadData/saveData` → `settings.json`、`recent.json`。
 
@@ -235,6 +235,7 @@ func IsValidInstalledPackage(pkg *Package, dirName string) bool {
 1. `src/types.ts`：加字段 + `DEFAULT_SETTINGS`；
 2. `src/index.ts#loadSettings`：如需要做类型/clamp 保护；
 3. `src/index.ts#initSettingPanel`：`setting.addItem({...})`；
+   - 若输入控件需要响应「重置设置」，在创建时向 `this.settingRefreshers` 注册一个「从 `this.settings` 回写控件」的函数；
 4. `public/i18n/zh_CN.json` 与 `en_US.json`：加对应 key 的 `title` / `description`。
 
 ### 新增一个搜索入口
